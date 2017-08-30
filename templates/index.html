@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <style type="text/css">
+      #art {
+        font-size: {{ '%spx' % fs }};
+        font-family: monospace, Courier;
+        line-height: {{ lh }};
+      }
+
+      {% if special %}
+      #front-change, #reset {
+        display: inline-block;
+      }
+
+      .ascii-line {
+        opacity: 0;
+        transition: opacity 0.25s linear;
+      }
+
+      {% else %}
+      #content {
+        opacity: 0;
+        transition: opacity 0.5s linear;
+      }
+
+      {% endif %}
+    </style>
+    <title>ASCII Art Generator</title>
+  </head>
+
+  <body>
+    {% if not special %}
+    <div id='container'>
+      <div class="header">
+        <h3>Upload an image (jpg, jpeg, png)...</h3>
+      </div>
+      <hr/>
+      <div>
+        <p style='color: red;' id='message'>
+          {% if error %}
+            {{ error }}
+          {% endif %}
+        </p>
+        <div id='form' enctype="multipart/form-data">
+          <input id='file-area' type="file" name="file">
+          <br /><br />
+          <input id='urlarea' type="text" name="url" placeholder="or Enter an URL...">
+          <button id='sample' type='button' style='display: inline;'>Sample</button>
+          <br /><br />
+          <input id='form-submit' type="button" value="Generate!">
+          <progress style='display: inline-block; height: 15px;' id='progress' value="0"></progress>
+        </div>
+        <br />
+      </div>
+      <hr />
+    </div>
+    {% endif %}
+    <div id='content'>
+      <b>File:</b>
+      <p id='filename' style="display: inline-block;">{{ name }}</p>
+      <div style='height: 40px'>
+        <div style='display: inline-block;'>
+          {% if not special %}
+          Min level:
+          <input type="text" style='width: 40px' id='min-level' name="min_level" value="{{minl}}">
+          <div style='width: 10px; display: inline-block;'></div>
+          Max level:
+          <input type="text" style='width: 40px' id='max-level' name="max_level" value="{{maxl}}">
+          <div style='width: 10px; display: inline-block;'></div>
+          Gamma:
+          <input type="text" style='width: 40px' id='gamma' name="gamma" value="{{gamma}}">
+          <div style='width: 10px; display: inline-block;'></div>
+          {% endif %}
+          Font size:
+          <select id='font-size'>
+            {% for i in range(1, 11): %}
+            <option {% if i == fs %} selected="selected" {% endif %} value="{{i}}">{{'%spx' % i}}</option>
+            {% endfor %}
+          </select>
+          <div style='width: 10px; display: inline-block;'></div>
+          Line height:
+          <input id='line-height' value={{lh}} style='width: 30px;'>
+        </div>
+      </div>
+      <button id='front-change'>Change</button>
+      <button id='reset'>Reset</button>
+      <br />
+    </div>
+
+    <pre id='art'>{{ art|safe }}</pre>
+
+    <script type="text/javascript">
+        var art = document.getElementById('art');
+
+        {% if not special %}
+        var initiator = document.getElementById('form-submit');
+        var file_name = document.getElementById('filename');
+        var progress_bar = document.getElementById('progress');
+        var url_area = document.getElementById('urlarea');
+        var file_area = document.getElementById('file-area');
+        var err_msg = document.getElementById('message');
+
+        file_area.addEventListener('change', function() {
+            url_area.value = '';
+        });
+
+        url_area.addEventListener('keypress', function() {
+            file_area.value = '';
+        });
+
+        document.getElementById('sample').addEventListener('click', function() {
+            file_area.value = '';
+            url_area.value = 'http://onehdwallpaper.com/wp-content/uploads/2016/11/Worlds-Cute-Girls-Images.jpg';
+        });
+
+        var min_level = {{ minl }};
+        var max_level = {{ maxl }};
+        var gamma = {{ gamma }};
+
+        function ajax_call() {
+            var fd = new FormData();
+            var min_l = document.getElementById('min-level').value;
+            fd.append('min_level', min_l);
+            var max_l = document.getElementById('max-level').value;
+            fd.append('max_level', max_l);
+            var g = document.getElementById('gamma').value;
+            fd.append('gamma', g);
+
+            if (url_area.value != "") {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', url_area.value);
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    err_msg.innerHTML = 'Invalid URL!';
+                    return
+                }
+
+                file_name.innerHTML = url_area.value;
+                fd.append('url', url_area.value);
+            } else if (file_area.files.length > 0) {
+                var file = file_area.files[0];
+                file_name.innerHTML = file.name;
+                fd.append('file', file);
+            } else {
+                err_msg.innerHTML = 'Expected file or URL!';
+                return
+            };
+
+            var xhr = new XMLHttpRequest();
+            xhr.responseType = 'application/json';
+            xhr.open('POST', '/');
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    progress_bar.max = e.total;
+                    progress_bar.value = e.loaded;
+                }
+            };
+            xhr.upload.onloadstart = function(e) {
+                initiator.value = 'Uploading...'
+                initiator.disabled = true;
+                progress_bar.value = 0;
+            };
+            xhr.upload.onloadend = function(e) {
+                initiator.value = 'Downloading...'
+                progress_bar.value = e.loaded;
+            };
+
+            xhr.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    progress_bar.max = e.total;
+                    progress_bar.value = e.loaded;
+                }
+            };
+            xhr.onloadstart = function(e) {
+                progress_bar.value = 0;
+            };
+            xhr.onloadend = function(e) {
+                initiator.value = 'Generate!'
+                initiator.disabled = false;
+                document.getElementById('content').style.opacity = 1;
+                progress_bar.value = 0;
+            };
+
+            xhr.onload = function() {
+                if (this.status == 200) {
+                    var resp = JSON.parse(this.response);
+                    if (resp.art != undefined) {
+                        min_level = min_l;
+                        max_level = max_l;
+                        gamma = g;
+
+                        err_msg.innerHTML = '';
+                        while (art.hasChildNodes()) {
+                            art.removeChild(art.lastChild);
+                        }
+
+                        var i = 0;
+                        setTimeout(appear, 0);
+                        function appear() {
+                            if (i == resp.art.length) {
+                                return
+                            }
+
+                            var div = document.createElement('div');
+                            div.innerHTML = resp.art[i];
+                            art.appendChild(div);
+                            i += 1;
+                            setTimeout(appear, 10);
+                        }
+                    } else if (resp.error != undefined) {
+                        err_msg.innerHTML = resp.error;
+                    } else {
+                        err_msg.innerHTML = 'Received invalid response!';
+                    }
+                }
+            };
+
+            xhr.send(fd);
+        }
+        {% endif %}
+
+        function params_reaction() {
+            art.style.fontSize = document.getElementById('font-size').value + 'px';
+            art.style.lineHeight = document.getElementById('line-height').value;
+            {% if not special %}
+            var min_l = document.getElementById('min-level').value;
+            var max_l = document.getElementById('max-level').value;
+            var g = document.getElementById('gamma').value;
+            if (min_l != min_level || max_l != max_level || g != gamma) {
+                ajax_call();
+            }
+            {% endif %}
+        }
+
+        document.getElementById('front-change').addEventListener('click', params_reaction);
+        document.getElementById('reset').addEventListener('click', function() {
+            document.getElementById('font-size').value = {{ fs }};
+            document.getElementById('line-height').value = {{ lh }};
+            {% if not special %}
+            document.getElementById('min-level').value = {{ minl }};
+            document.getElementById('max-level').value = {{ maxl }};
+            document.getElementById('gamma').value = {{ gamma }};
+            {% endif %}
+
+            params_reaction();
+        });
+
+        {% if special %}
+        window.onload = function() {
+            var i = 0;
+            var divs = document.querySelectorAll('.ascii-line');
+            setTimeout(appear, 0);
+            function appear() {
+                if (i == divs.length) {
+                    return
+                }
+
+                divs[i].style.opacity = 1;
+                i += 1;
+                setTimeout(appear, 0);
+            }
+        };
+        {% else %}
+        initiator.addEventListener('click', ajax_call);
+        {% endif %}
+    </script>
+  </body>
+</html>

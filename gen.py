@@ -35,7 +35,7 @@ def generate_basic_sketch(image, min_level, max_level, gamma):
     return image
 
 # Modified from https://github.com/ajalt/pyasciigen/blob/master/asciigen.py
-def generate_art(path, min_level, max_level, gamma, given_width=500,
+def generate_art(path, min_level, max_level, gamma, given_width=None,
                  brightness=None, contrast=None, html=False):
     font = ImageFont.load_default()
     char_width, char_height = font.getsize('X')
@@ -58,7 +58,9 @@ def generate_art(path, min_level, max_level, gamma, given_width=500,
 
     scale = 1
     width, height = image.size
-    if given_width is not None:
+    if given_width is None:
+        given_width = min(width, 500)
+    if given_width < width:
         scale = float(given_width) / width
         width = given_width
 
