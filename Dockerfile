@@ -8,8 +8,9 @@ RUN apk add build-base python-dev py-pip jpeg-dev zlib-dev
 ENV LIBRARY_PATH=/lib:/usr/lib
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY gen.py /gen.py
-COPY runner.py /runner.py
+COPY gen.py ./
+COPY runner.py ./
+COPY templates/ ./templates/
 
 ENV PORT 5000
 ENTRYPOINT ["python", "./runner.py"]

@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ascii-gen
+spec:
+  clusterIP: "10.0.0.150"
+  selector:
+    app: ascii-gen
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+      name: http
+
+---
+
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: ascii-gen
+spec:
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: ascii-gen
+    spec:
+      containers:
+        - name: ascii-gen
+          image: wafflespeanut/ascii-gen
+          ports:
+            - containerPort: 5000
+              protocol: TCP
+              name: server
+          env:
+            - name: PORT
+              value: '5000'
