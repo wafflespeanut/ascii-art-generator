@@ -1,1 +1,1 @@
-web: python runner.py
+web: python src/runner.py

@@ -182,7 +182,7 @@
             };
 
             xhr.onload = function() {
-                if (this.status == 200) {
+                if (this.status == 200 || this.status == 400) {
                     var resp = JSON.parse(this.response);
                     if (resp.art != undefined) {
                         min_level = min_l;
