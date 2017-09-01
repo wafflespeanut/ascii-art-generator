@@ -1,5 +1,7 @@
 FROM python:2.7.13-alpine3.6
 
+MAINTAINER Ravi Shankar <wafflespeanut@gmail.com>
+
 WORKDIR /usr/src/app
 COPY requirements.txt ./
 

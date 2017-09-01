@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: ascii-gen
 spec:
-  clusterIP: "10.0.0.150"
+  clusterIP: "10.3.0.2"
   selector:
     app: ascii-gen
   ports:
@@ -14,12 +14,13 @@ spec:
 
 ---
 
-apiVersion: apps/v1beta1
+# FIXME: Update hyperkube and use `apps/v1beta1`
+apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: ascii-gen
 spec:
-  replicas: 3
+  replicas: 1
   template:
     metadata:
       labels:
