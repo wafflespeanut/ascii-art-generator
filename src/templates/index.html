@@ -148,7 +148,7 @@
 
             var xhr = new XMLHttpRequest();
             xhr.responseType = 'application/json';
-            xhr.open('POST', '/');
+            xhr.open('POST', window.location.href);
             xhr.upload.onprogress = function(e) {
                 if (e.lengthComputable) {
                     progress_bar.max = e.total;

@@ -1,7 +1,6 @@
 from collections import Counter
 from PIL import Image, ImageFilter, ImageFont, ImageDraw, ImageEnhance, ImageOps
 
-import cgi
 import colorsys
 import string
 
