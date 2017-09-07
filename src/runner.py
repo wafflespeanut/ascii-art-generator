@@ -140,6 +140,7 @@ if __name__ == '__main__':
                     path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(f.filename))
                     f.save(path)
                     image = open_image(path)
+                    os.remove(path)
         except Exception as err:
             return jsonify({'error': err[0]})
 
