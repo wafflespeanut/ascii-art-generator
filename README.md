@@ -1,5 +1,7 @@
 ## ascii-art-generator
 
+[![Build Status](https://travis-ci.org/wafflespeanut/ascii-art-generator.svg?branch=master)](https://travis-ci.org/Wafflespeanut/ascii-art-generator)
+
 Generate ASCII arts from JPEG/PNG images. [Live demo](https://waffles.space/ascii-gen/).
 
 ### Usage

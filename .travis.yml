@@ -1,0 +1,11 @@
+sudo: required
+
+services:
+  - docker
+
+script:
+  - docker build -t wafflespeanut/ascii-gen .
+
+after_success:
+  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+  - docker push wafflespeanut/ascii-gen
