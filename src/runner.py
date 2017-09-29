@@ -12,6 +12,7 @@ import urllib2
 
 UPLOAD_FOLDER = './'
 ALLOWED_EXTENSIONS = set(['jpg', 'jpeg', 'png'])
+MAX_UPLOAD_SIZE = 4 * 1024 * 1024
 
 DEFAULT_FONT_SIZE_PX = 4
 DEFAULT_LINE_HEIGHT = 1
@@ -30,11 +31,18 @@ def render_index(**kwargs):
     return render_template('index.html', **kwargs)
 
 
-def open_image(path_or_fd):
+def open_image(path_or_fd, path=True):
+    img = None
     try:
-        return Image.open(path_or_fd)
+        img = Image.open(path_or_fd)
     except Exception:
+        pass
+
+    if path:
+        os.remove(path_or_fd)
+    if not img:
         raise Exception('Error processing image!')
+    return img
 
 
 def get_image(url):
@@ -43,11 +51,14 @@ def get_image(url):
     try:
         print 'Downloading %s...' % url
         fd = urllib2.urlopen(url)
+        size = int(fd.info().getheaders("Content-Length")[0])
+        if size > 4 * MAX_UPLOAD_SIZE:      # 16 MB for URL
+            raise Exception('Max. allowed size for image: 4 MB')
     except Exception as err:
         print 'Error downloading %s: %s' % (url, err)
         raise Exception('Cannot download file from URL!')
 
-    return open_image(StringIO(fd.read()))
+    return open_image(StringIO(fd.read()), path=False)
 
 
 def parse_params(min_l, max_l, gamma, width=None):
@@ -71,7 +82,7 @@ if __name__ == '__main__':
     app = Flask('ASCII Art Generator')
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     app.config['ALLOWED_EXTENSIONS'] = ALLOWED_EXTENSIONS
-    app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024      # 4 MB
+    app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_SIZE
 
     sketch = Sketch()
 
@@ -137,10 +148,9 @@ if __name__ == '__main__':
                 elif not allowed_file(f.filename):
                     return jsonify({'error': 'Unsupported file!'})
                 else:
-                    path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(f.filename))
-                    f.save(path)
-                    image = open_image(path)
-                    os.remove(path)
+                    img_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(f.filename))
+                    f.save(img_path)
+                    image = open_image(img_path)
         except Exception as err:
             return jsonify({'error': err[0]})
 
