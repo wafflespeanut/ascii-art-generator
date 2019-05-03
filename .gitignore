@@ -5,3 +5,6 @@ bin/
 pkg/
 wasm-pack.log
 *.pyc
+node_modules
+dist
+package-lock.json

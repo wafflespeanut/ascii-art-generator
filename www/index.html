@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <head>
+      <style type="text/css">
+        #message {
+          color: red;
+        }
+
+        #art {
+          font-size: 4px;
+          font-family: monospace, Courier;
+          line-height: 1;
+        }
+      </style>
+      <title>ASCII Art Generator</title>
+    </head>
+    <meta charset="utf-8">
+    <title>Rusty Sketch!</title>
+  </head>
+  <body>
+    <script src="./bootstrap.js"></script>
+    <div id='container'>
+      <div class="header">
+        <h3>Pick an image (jpg, png)...</h3>
+      </div>
+      <hr/>
+      <div>
+        <p id='message'></p>
+        <div id='form'>
+          <input id='file-thingy' type="file" name="file">
+          <br /><br />
+        </div>
+        <br />
+      </div>
+    </div>
+    <pre id='art'></pre>
+  </body>
+</html>
