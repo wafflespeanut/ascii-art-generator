@@ -12,7 +12,9 @@ matrix:
       - (test -x $HOME/.cargo/bin/cargo-generate || cargo install --vers "^0.2" cargo-generate)
       - cargo install-update -a
       - curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
+      - rustup component add rustfmt
     script:
+      - cargo fmt -- --check
       - mv Cargo.toml Cargo.toml.tmpl
       - cargo generate --git . --name testing
       - cd testing

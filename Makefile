@@ -16,6 +16,7 @@ all: build run
 
 prepare:
 	-cargo install wasm-pack
+	-rustup component add rustfmt
 	wasm-pack build
 	cd $(WASM_OUT_DIR) && npm link && cd ..
 	npm link rusty-sketch
@@ -30,6 +31,7 @@ build: clean
 
 	cp -rf $(CONTENT_DIR)/* $(BUILD_DIR)/
 
+	cargo fmt
 	wasm-pack build
 	NODE_ENV=$(ENV) npm run build
 
