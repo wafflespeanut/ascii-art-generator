@@ -1,0 +1,9 @@
+#message {
+  color: red;
+}
+
+#art {
+  font-size: 4px;
+  font-family: monospace, Courier;
+  line-height: 1;
+}

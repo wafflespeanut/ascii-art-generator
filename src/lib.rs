@@ -47,7 +47,7 @@ pub fn start() -> Result<(), JsValue> {
     let document = window.document().map(Rc::new).expect("getting document");
     // let body = document.body().expect("getting body");
 
-    let art_elem = document.get_element_by_id("art")
+    let art_elem = document.get_element_by_id("art-box")
         .expect("pre element?")
         .dyn_into::<web_sys::HtmlPreElement>()?;
 

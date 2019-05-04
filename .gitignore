@@ -1,10 +1,16 @@
-/target
+# Legacy python (will be removed)
+*.pyc
+# Cargo
+target/
 **/*.rs.bk
 Cargo.lock
-bin/
+
+# wasm-pack
 pkg/
 wasm-pack.log
-*.pyc
-node_modules
-dist
+# JS output
+.build/
+lib/
+# Node stuff
+node_modules/
 package-lock.json

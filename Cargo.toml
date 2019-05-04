@@ -43,9 +43,6 @@ features = [
   "Window",
 ]
 
-[dev-dependencies]
-wasm-bindgen-test = "0.2"
-
 [profile.release]
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"

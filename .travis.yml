@@ -1,11 +1,24 @@
-sudo: required
+sudo: false
+cache: cargo
 
-services:
-  - docker
-
-script:
-  - docker build -t wafflespeanut/ascii-gen .
-
-after_success:
-  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-  - docker push wafflespeanut/ascii-gen
+matrix:
+  include:
+  # Builds with wasm-pack.
+  - language: rust
+    rust: nightly
+    env: RUST_BACKTRACE=1
+    before_script:
+      - (test -x $HOME/.cargo/bin/cargo-install-update || cargo install cargo-update)
+      - (test -x $HOME/.cargo/bin/cargo-generate || cargo install --vers "^0.2" cargo-generate)
+      - cargo install-update -a
+      - curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
+    script:
+      - mv Cargo.toml Cargo.toml.tmpl
+      - cargo generate --git . --name testing
+      - cd testing
+      - wasm-pack build
+  # Builds with webpack.
+  - language: node_js
+    node_js: "10"
+    script:
+      - ./node_modules/.bin/webpack
