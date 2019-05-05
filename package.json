@@ -3,13 +3,11 @@
   "version": "0.1.0",
   "description": "Entrypoint for rusty-sketch",
   "scripts": {
-    "build": "webpack --config webpack.config.js",
-    "start": "webpack-dev-server"
+    "build": "webpack --config config/webpack.config.js"
   },
   "devDependencies": {
     "rusty-sketch": "^0.1.0",
     "webpack": "^4.29.3",
-    "webpack-cli": "^3.1.0",
-    "webpack-dev-server": "^3.3.1"
+    "webpack-cli": "^3.1.0"
   }
 }

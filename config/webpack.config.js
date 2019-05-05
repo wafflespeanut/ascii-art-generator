@@ -1,7 +1,7 @@
 const path = require("path");
 
 function resolve(dir) {
-  return path.join(__dirname, dir)
+  return path.join(__dirname, '..', dir)
 }
 
 module.exports = {
@@ -10,11 +10,7 @@ module.exports = {
   },
   output: {
     path: resolve(".build/assets/scripts"),
+    publicPath: "assets/scripts/"
   },
-  mode: "development",
-  devServer: {
-    publicPath: "/",
-    contentBase: "./.build",
-    hot: true
-  }
+  mode: "production"
 }

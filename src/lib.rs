@@ -10,6 +10,7 @@ macro_rules! console_log {
 mod art;
 mod dom;
 mod utils;
+include!(concat!(env!("OUT_DIR"), "/demo_output.rs"));
 
 pub use self::art::AsciiArtGenerator;
 pub use self::dom::DomAsciiArtInjector;
@@ -24,9 +25,9 @@ extern "C" {
 pub fn start() -> Result<(), JsValue> {
     utils::set_panic_hook();
 
-    let injector = DomAsciiArtInjector::init("art-box", "file-thingy")?;
-    injector.subscribe_to_file_loads()?;
-    injector.add_file_listener()?;
+    let injector = DomAsciiArtInjector::init()?;
+    injector.inject_from_data("header-box", &DEMO_DATA)?;
+    injector.inject_on_file_loads("file-thingy", "art-box")?;
 
     Ok(())
 }

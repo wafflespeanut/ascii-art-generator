@@ -8,83 +8,65 @@ use std::rc::Rc;
 
 /// A thing for reading files and injecting the art.
 pub struct DomAsciiArtInjector {
-    window: Rc<web_sys::Window>,
-    document: Rc<web_sys::Document>,
-    input: Rc<web_sys::HtmlInputElement>,
-    pre: Rc<web_sys::HtmlPreElement>,
-    reader: Rc<web_sys::FileReader>,
+    pub window: Rc<web_sys::Window>,
+    pub document: Rc<web_sys::Document>,
 }
 
 impl DomAsciiArtInjector {
     /// Initialize this injector with the IDs of `<pre>` element (for injecting art)
     /// and `<input>` element for subscribing to file loads.
-    pub fn init(pre_elem_id: &str, input_elem_id: &str) -> Result<Self, JsValue> {
+    pub fn init() -> Result<Self, JsValue> {
         let window = web_sys::window().map(Rc::new).expect("getting window");
         let document = window.document().map(Rc::new).expect("getting document");
-        let input = document
-            .get_element_by_id(input_elem_id)
-            .expect("missing input element?")
-            .dyn_into::<web_sys::HtmlInputElement>()
-            .map(Rc::new)?;
-        input.set_value(""); // reset input element
 
-        Ok(DomAsciiArtInjector {
-            window,
-            pre: document
-                .get_element_by_id(pre_elem_id)
-                .expect("missing pre element?")
-                .dyn_into::<web_sys::HtmlPreElement>()
-                .map(Rc::new)?,
-            input,
-            document,
-            reader: web_sys::FileReader::new().map(Rc::new)?,
-        })
+        Ok(DomAsciiArtInjector { window, document })
+    }
+
+    /// Inject into the `<pre>` element matching the given ID using the given image data.
+    pub fn inject_from_data(&self, pre_elem_id: &str, buffer: &[u8]) -> Result<(), JsValue> {
+        let pre = self.get_element_by_id::<web_sys::HtmlPreElement>(pre_elem_id)?;
+        Self::inject_from_data_using_document(buffer, &self.document, &pre)
     }
 
     /// Adds an event listener to watch and update the `<pre>` element
     /// whenever a file is loaded.
-    pub fn subscribe_to_file_loads(&self) -> Result<(), JsValue> {
-        let (document, reader, _input, pre) = (
-            self.document.clone(),
-            self.reader.clone(),
-            self.input.clone(),
-            self.pre.clone(),
-        );
+    pub fn inject_on_file_loads(
+        &self,
+        input_elem_id: &str,
+        pre_elem_id: &str,
+    ) -> Result<(), JsValue> {
+        let reader = web_sys::FileReader::new().map(Rc::new)?;
+
+        let pre = self.get_element_by_id::<web_sys::HtmlPreElement>(pre_elem_id)?;
+        let input = self
+            .get_element_by_id::<web_sys::HtmlInputElement>(input_elem_id)
+            .map(Rc::new)?;
+        input.set_value(""); // reset input element
+
+        let (r, doc) = (reader.clone(), self.document.clone());
         let closure = Closure::wrap(Box::new(move |_: web_sys::Event| {
-            let value = reader.result().expect("reading complete but no result?");
+            let value = r.result().expect("reading complete but no result?");
             let buffer = Uint8Array::new(&value);
-            let len = buffer.length();
-            console_log!("Bytes read: {}", len);
-
-            let mut bytes = vec![0; len as usize];
+            let mut bytes = vec![0; buffer.length() as usize];
             buffer.copy_to(&mut bytes);
-
-            pre.set_inner_html(""); // reset <pre> element
-            let gen = AsciiArtGenerator::from_bytes(&bytes).expect("failed to load image.");
-            console_log!("Approx. final image size: {} x {}", gen.width, gen.height);
-
-            for text in gen.generate() {
-                let div = document
-                    .create_element("div")
-                    .expect("creating div element")
-                    .dyn_into::<web_sys::HtmlElement>()
-                    .expect("casting element?");
-                div.set_inner_text(&text);
-                pre.append_child(&div).expect("appending div element");
-            }
+            Self::inject_from_data_using_document(&bytes, &doc, &pre).expect("failed to inject")
         }) as Box<FnMut(_)>);
 
-        self.reader
-            .set_onload(Some(closure.as_ref().unchecked_ref()));
+        reader.set_onload(Some(closure.as_ref().unchecked_ref()));
         closure.forget();
-        Ok(())
+
+        self.add_file_listener(input, reader)
     }
 
     /// Adds event listener for reading files.
-    pub fn add_file_listener(&self) -> Result<(), JsValue> {
-        let (input, reader) = (self.input.clone(), self.reader.clone());
+    fn add_file_listener(
+        &self,
+        input: Rc<web_sys::HtmlInputElement>,
+        reader: Rc<web_sys::FileReader>,
+    ) -> Result<(), JsValue> {
+        let inp = input.clone();
         let closure = Closure::wrap(Box::new(move |_: web_sys::Event| {
-            let file = match input
+            let file = match inp
                 .files()
                 .and_then(|l| l.get(l.length().saturating_sub(1)))
             {
@@ -97,9 +79,46 @@ impl DomAsciiArtInjector {
                 .expect("failed to read file");
         }) as Box<FnMut(_)>);
 
-        self.input
-            .set_onchange(Some(closure.as_ref().unchecked_ref()));
+        input.set_onchange(Some(closure.as_ref().unchecked_ref()));
         closure.forget();
+        Ok(())
+    }
+
+    /// Abstraction for `document.getElementById`
+    fn get_element_by_id<T>(&self, id: &str) -> Result<T, web_sys::Element>
+    where
+        T: JsCast,
+    {
+        self.document
+            .get_element_by_id(id)
+            .expect("missing element?")
+            .dyn_into::<T>()
+    }
+
+    /// Gets image data from buffer, generates ASCII art and injects into `<pre>` element.
+    fn inject_from_data_using_document(
+        buffer: &[u8],
+        doc: &web_sys::Document,
+        pre: &web_sys::HtmlPreElement,
+    ) -> Result<(), JsValue> {
+        console_log!("Image size: {} bytes", buffer.len());
+
+        pre.set_inner_html(""); // reset <pre> element
+        let gen = AsciiArtGenerator::from_bytes(&buffer).expect("failed to load image.");
+        console_log!(
+            "Approx. final image dimensions: {} x {}",
+            gen.width,
+            gen.height
+        );
+
+        for text in gen.generate() {
+            let div = doc
+                .create_element("div")?
+                .dyn_into::<web_sys::HtmlElement>()?;
+            div.set_inner_text(&text);
+            pre.append_child(&div)?;
+        }
+
         Ok(())
     }
 }
