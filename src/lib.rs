@@ -26,7 +26,7 @@ pub fn start() -> Result<(), JsValue> {
 
     // We're using timeouts to delay things in each step instead of
     // blocking the browser doing sync stuff.
-    injector.inject_on_file_loads("file-thingy", "art-box", "progress-box", 100)?;
+    injector.inject_on_file_loads("file-thingy", "art-box", "progress-box", 50)?;
 
     Ok(())
 }

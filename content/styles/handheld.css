@@ -15,6 +15,17 @@
   font-size: 2px;
 }
 
+#progress-box {
+  margin-top: 5%;
+  flex-flow: column wrap;
+  align-self: center;
+}
+
+#progress-box img {
+  margin-left: 10px 10%;
+  width: 80%;
+}
+
 .arrow {
   display: none;
 }

@@ -9,7 +9,7 @@ use std::cell::{Cell, RefCell};
 use std::cmp;
 use std::rc::Rc;
 
-const THUMB_SIZE: u32 = 350;
+const THUMB_HEIGHT: u32 = 100;
 
 /// A thing for reading files and injecting the art.
 pub struct DomAsciiArtInjector {
@@ -51,7 +51,7 @@ impl DomAsciiArtInjector {
             .get_element_by_id::<web_sys::HtmlPreElement>(pre_elem_id)
             .map(Rc::new)?;
         let prog = self
-            .get_element_by_id::<web_sys::Node>(progress_elem_id)
+            .get_element_by_id::<web_sys::Element>(progress_elem_id)
             .map(Rc::new)?;
         let input = self
             .get_element_by_id::<web_sys::HtmlInputElement>(input_elem_id)
@@ -61,6 +61,7 @@ impl DomAsciiArtInjector {
         {
             let (r, doc) = (reader.clone(), self.document.clone());
             let closure = Closure::wrap(Box::new(move |_: web_sys::Event| {
+                prog.set_inner_html("");
                 let value = r.result().expect("reading complete but no result?");
                 let buffer = Uint8Array::new(&value);
                 let mut bytes = vec![0; buffer.length() as usize];
@@ -74,8 +75,10 @@ impl DomAsciiArtInjector {
                     timeout_ms,
                     Box::new(move |img: &DynamicImage| -> Result<(), JsValue> {
                         // Whenever we get an image, resize it to a thumbnail.
-                        let new_w = cmp::min(img.width(), THUMB_SIZE);
-                        let img = img.resize(new_w, new_w, image::FilterType::Lanczos3);
+                        let new_h = cmp::min(img.height(), THUMB_HEIGHT);
+                        let new_w =
+                            (new_h as f32 * img.width() as f32 / img.height() as f32) as u32;
+                        let img = img.resize_exact(new_w, new_h, image::FilterType::Lanczos3);
                         let mut bytes = vec![];
                         img.write_to(&mut bytes, image::ImageFormat::JPEG)
                             .expect("invalid image?");

@@ -15,6 +15,16 @@
   font-size: 4px;
 }
 
+#progress-box {
+  flex-flow: row;
+  margin-top: 1%;
+}
+
+#progress-box img {
+  margin: 10px;
+  width: auto;
+}
+
 /* Arrow animation shamelessly stolen and modified from https://codepen.io/shawnlooi/pen/eeXmrQ */
 
 .arrow {
@@ -83,6 +93,6 @@
 }
 
 .success-banner.show > .arrow-content {
-  transform: translateX(17px);
+  /* transform: translateX(17px); */
   transform: translateX(80px);
 }

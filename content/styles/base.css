@@ -1,3 +1,8 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
 #rusty-box {
   display: flex;
   align-items: center;
@@ -26,8 +31,13 @@ label[for="file-thingy"] {
   line-height: 1;
 }
 
+#progress-box {
+  display: flex;
+  justify-content: center;
+}
+
 .success-banner {
-  margin-left: 2%;
+  margin-left: 1%;
   display: inline-block;
   position: relative;
 }
