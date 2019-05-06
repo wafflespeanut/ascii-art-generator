@@ -2,6 +2,7 @@ use crate::utils;
 use image::{DynamicImage, FilterType, GenericImageView, ImageError, RgbImage};
 
 use std::cmp;
+use std::ops::Deref;
 
 const BLEND_RATIO: f32 = 0.5;
 
@@ -98,29 +99,60 @@ impl AsciiArtGenerator {
         self.width
     }
 
-    /// Let the artwork begin!
-    ///
-    /// See https://blog.waffles.space/2017/02/28/ascii-sketch/ for how it works.
-    pub fn generate(&self) -> impl Iterator<Item = String> {
-        let width = self.width;
-        let height = (self.height as f32 * DEFAULT_CHAR_WIDTH / DEFAULT_CHAR_HEIGHT) as u32;
-        let img = self.img.resize_exact(width, height, FilterType::Lanczos3);
+    /// Return the processor which takes care of generating the artwork.
+    #[inline]
+    pub fn processor(&self) -> Processor<'_> {
+        Processor(self)
+    }
+}
 
-        let mut foreground = img.blur(8.0);
-        foreground.invert();
+/// The processor which actually generates the image. It constrains
+/// the generator from being modified.
+pub struct Processor<'a>(&'a AsciiArtGenerator);
 
-        let mut actual_buf = img.to_rgb();
-        let fg_buf = foreground.to_rgb();
+impl<'a> Deref for Processor<'a> {
+    type Target = AsciiArtGenerator;
+
+    fn deref(&self) -> &Self::Target {
+        self.0
+    }
+}
+
+impl<'a> Processor<'a> {
+    /// Returns the resized image with corrections to the specified dimensions.
+    #[inline]
+    pub fn resize(&self) -> DynamicImage {
+        let h = (self.height as f32 * DEFAULT_CHAR_WIDTH / DEFAULT_CHAR_HEIGHT) as u32;
+        self.img.resize_exact(self.width, h, FilterType::Lanczos3)
+    }
+
+    /// Applies Guassian blur and inverts the image. This will be blended
+    /// with the original image and adjusted for levels.
+    #[inline]
+    pub fn blur_and_invert(&self, img: &DynamicImage) -> DynamicImage {
+        let mut img = img.blur(8.0);
+        img.invert();
+        img
+    }
+
+    /// Blend the given images and adjust levels.
+    pub fn blend_and_adjust(&self, actual: &DynamicImage, fg: &DynamicImage) -> DynamicImage {
+        let mut actual_buf = actual.to_rgb();
+        let fg_buf = fg.to_rgb();
         self.blend_and_adjust_levels(&mut actual_buf, &fg_buf);
 
         let detailed = DynamicImage::ImageRgb8(actual_buf);
-        let final_img = DynamicImage::ImageLuma8(detailed.to_luma());
+        DynamicImage::ImageLuma8(detailed.to_luma())
+    }
 
+    /// Converts the image to Luma, maps the characters and returns a `String` iterator.
+    pub fn generate_from_img(&'a self, img: &'a DynamicImage) -> impl Iterator<Item = String> + 'a {
         let multiplier = (CHARS.len() - 1) as f32;
+        let (width, height) = (img.width(), img.height());
         (0..height).map(move |y| {
             (0..width)
                 .map(|x| {
-                    let p = final_img.get_pixel(x, y).data[0] as f32 / 255.0;
+                    let p = img.get_pixel(x, y).data[0] as f32 / 255.0;
                     CHARS[(p * multiplier + 0.5) as usize]
                 })
                 .collect()
