@@ -1,2 +1,25 @@
 
 @import url("./base.css");
+
+#rusty-box {
+  padding-top: 10%;
+  flex-flow: column;
+}
+
+#header-box {
+  font-size: 2px;
+}
+
+#art-box {
+  padding-top: 5%;
+  font-size: 2px;
+}
+
+.arrow {
+  display: none;
+}
+
+.success-banner {
+  margin-top: 2%;
+  font-size: 12px;
+}

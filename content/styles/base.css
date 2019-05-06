@@ -1,9 +1,48 @@
-#message {
-  color: red;
+#rusty-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#file-thingy {
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: -1;
+}
+
+label[for="file-thingy"] {
+  cursor: pointer;
+}
+
+#art-box, #header-box div {
+  text-align: center;
 }
 
 #art-box, #header-box {
-  font-size: 4px;
   font-family: monospace, Courier;
   line-height: 1;
+}
+
+.success-banner {
+  margin-left: 2%;
+  display: inline-block;
+  position: relative;
+}
+
+.success-banner > .arrow-content {
+  display: flex;
+  opacity: 0;
+  align-items: center;
+  transition: all 1s;
+}
+
+.success-banner > .arrow-content > .arrow-text {
+  line-height: 1;
+}
+
+.success-banner.show > .arrow-content {
+  opacity: 1;
 }

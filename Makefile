@@ -1,5 +1,4 @@
 ENV = development
-NPM = $(shell npm bin)
 
 ASSETS_DIR = assets
 BUILD_DIR = .build

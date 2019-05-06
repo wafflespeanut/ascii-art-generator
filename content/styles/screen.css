@@ -1,2 +1,88 @@
 
 @import url("./base.css");
+
+#rusty-box {
+  padding-top: 2%;
+  flex-flow: row;
+}
+
+#header-box {
+  font-size: 4px;
+}
+
+#art-box {
+  padding-top: 1%;
+  font-size: 4px;
+}
+
+/* Arrow animation shamelessly stolen and modified from https://codepen.io/shawnlooi/pen/eeXmrQ */
+
+.arrow {
+  display: block;
+  position: absolute;
+  top: 60%;
+  left: 0;
+}
+
+.arrow > .shaft {
+  width: 0;
+  height: 1px;
+  display: block;
+  position: relative;
+  background-color: black;
+  transition: all 1s;
+  will-change: transform;
+}
+
+.arrow > .shaft:before, .arrow > .shaft:after {
+  content: '';
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 1px;
+  display: block;
+  position: absolute;
+  background-color: black;
+  transform: rotate(0);
+  transition: all 0.2s;
+}
+
+.arrow > .shaft:before {
+  transform-origin: top right;
+}
+
+.arrow > .shaft:after {
+  transform-origin: bottom right;
+}
+
+.success-banner {
+  margin-top: 0;
+  font-size: initial;
+}
+
+.success-banner > .arrow-content {
+  transition: opacity 1s ease 1s;
+}
+
+.success-banner.show > .arrow > .shaft {
+  width: 64px;
+  transition-delay: 0.2s;
+}
+
+.success-banner.show > .arrow > .shaft:before, .success-banner.show > .arrow > .shaft:after {
+  width: 8px;
+  transition-delay: 0.2s;
+}
+
+.success-banner.show > .arrow > .shaft:before {
+  transform: rotate(40deg);
+}
+
+.success-banner.show > .arrow > .shaft:after {
+  transform: rotate(-40deg);
+}
+
+.success-banner.show > .arrow-content {
+  transform: translateX(17px);
+  transform: translateX(80px);
+}

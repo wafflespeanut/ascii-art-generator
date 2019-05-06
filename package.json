@@ -2,12 +2,18 @@
   "name": "ascii-art-generator",
   "version": "0.1.0",
   "description": "Entrypoint for rusty-sketch",
+  "repository": {
+    "url": "https://github.com/wafflespeanut/ascii-art-generator"
+  },
+  "license": "(MIT OR Apache-2.0)",
   "scripts": {
-    "build": "webpack --config config/webpack.config.js"
+    "build": "webpack --config config/webpack.config.js",
+    "start": "browser-sync .build -w"
   },
   "devDependencies": {
     "rusty-sketch": "^0.1.0",
     "webpack": "^4.29.3",
-    "webpack-cli": "^3.1.0"
+    "webpack-cli": "^3.1.0",
+    "browser-sync": "^2.26.5"
   }
 }

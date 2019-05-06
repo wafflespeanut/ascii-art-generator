@@ -14,13 +14,18 @@
 <body>
   <script src="assets/scripts/index.js"></script>
   <div id="rusty-box">
-    <div class="info-box">
+    <input id="file-thingy" type="file">
+    <label for="file-thingy">
       <pre id="header-box"></pre>
-    </div>
-    <div>
-      <input id="file-thingy" type="file">
-      <br /><br />
-    </div>
+    </label>
+    <span class="success-banner">
+      <span class="arrow">
+        <span class='shaft'></span>
+      </span>
+      <span class="arrow-content">
+        <span class="arrow-text">It works!</span>
+      </span>
+    </span>
   </div>
   <pre id="art-box"></pre>
 </body>
