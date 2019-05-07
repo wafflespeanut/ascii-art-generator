@@ -21,16 +21,33 @@
   align-self: center;
 }
 
-#progress-box img {
-  margin-left: 10px 10%;
+#progress-box > img {
+  margin: 10px 10%;
   width: 80%;
 }
 
-.arrow {
-  display: none;
+.outline.show > .divider {
+  height: 20px;
+}
+
+.divider {
+  left: 50%;
+}
+
+.divider.hline {
+  left: 10%;
+}
+
+.outline.show > .divider.hline {
+  height: 1px;
+  width: 80%;
 }
 
 .success-banner {
   margin-top: 2%;
   font-size: 12px;
+}
+
+.success-banner > .divider {
+  display: none;
 }

@@ -32,19 +32,34 @@ impl DomAsciiArtInjector {
         let pre = self
             .get_element_by_id::<web_sys::HtmlPreElement>(pre_elem_id)
             .map(Rc::new)?;
-        Self::inject_from_data_using_document(buffer, &self.document, &pre, 0, |_| Ok(()));
+        Self::inject_from_data_using_document(
+            buffer,
+            &self.document,
+            &pre,
+            0,
+            |_| Ok(()),
+            |draw| {
+                console_log!("Yay!");
+                draw();
+                Ok(())
+            },
+        );
         Ok(())
     }
 
     /// Adds an event listener to watch and update the `<pre>` element
     /// whenever a file is loaded.
-    pub fn inject_on_file_loads(
+    pub fn inject_on_file_loads<F>(
         &self,
         input_elem_id: &str,
         pre_elem_id: &str,
         progress_elem_id: &str,
         timeout_ms: u32,
-    ) -> Result<(), JsValue> {
+        final_callback: F,
+    ) -> Result<(), JsValue>
+    where
+        F: FnMut(Box<FnOnce() + 'static>) -> Result<(), JsValue> + Clone + 'static,
+    {
         // Setup the stage.
         let reader = web_sys::FileReader::new().map(Rc::new)?;
         let pre = self
@@ -61,6 +76,7 @@ impl DomAsciiArtInjector {
         {
             let (r, doc) = (reader.clone(), self.document.clone());
             let closure = Closure::wrap(Box::new(move |_: web_sys::Event| {
+                // Input file has changed. Reset progress and get buffer.
                 prog.set_inner_html("");
                 let value = r.result().expect("reading complete but no result?");
                 let buffer = Uint8Array::new(&value);
@@ -73,7 +89,7 @@ impl DomAsciiArtInjector {
                     &doc.clone(),
                     &pre,
                     timeout_ms,
-                    Box::new(move |img: &DynamicImage| -> Result<(), JsValue> {
+                    move |img: &DynamicImage| -> Result<(), JsValue> {
                         // Whenever we get an image, resize it to a thumbnail.
                         let new_h = cmp::min(img.height(), THUMB_HEIGHT);
                         let new_w =
@@ -92,7 +108,8 @@ impl DomAsciiArtInjector {
                         prog.append_child(&img)?;
 
                         Ok(())
-                    }) as Box<_>,
+                    },
+                    final_callback.clone(),
                 );
             }) as Box<FnMut(_)>);
 
@@ -104,7 +121,7 @@ impl DomAsciiArtInjector {
     }
 
     /// Abstraction for `document.getElementById`
-    fn get_element_by_id<T>(&self, id: &str) -> Result<T, web_sys::Element>
+    pub(crate) fn get_element_by_id<T>(&self, id: &str) -> Result<T, web_sys::Element>
     where
         T: JsCast,
     {
@@ -141,15 +158,19 @@ impl DomAsciiArtInjector {
     }
 
     /// Gets image data from buffer, generates ASCII art and injects into `<pre>` element.
-    /// Also takes a callback for invoking with the images created in each step.
-    fn inject_from_data_using_document<F>(
+    /// Each step produces an image, steps can be spaced by timeouts, and a callback is
+    /// called after each step. Also takes a final callback for invoking the final draw.
+    // NOTE: Yes, this is unnecessarily complicated, I know!
+    fn inject_from_data_using_document<F, U>(
         buffer: &[u8],
         doc: &Rc<web_sys::Document>,
         pre: &Rc<web_sys::HtmlPreElement>,
         step_timeout_ms: u32,
         mut callback: F,
+        final_callback: U,
     ) where
         F: FnMut(&DynamicImage) -> Result<(), JsValue> + 'static,
+        U: FnOnce(Box<FnOnce() + 'static>) -> Result<(), JsValue> + 'static,
     {
         console_log!("Image size: {} bytes", buffer.len());
 
@@ -183,18 +204,22 @@ impl DomAsciiArtInjector {
 
                     let (outer_d, outer_k) = (inner_d.clone(), inner_k.clone());
                     let f = move || {
-                        // Move the timeout keeper inside to prevent clearing all timeouts.
-                        let _keeper = inner_k.clone();
-                        let proc = gen.processor();
-                        for text in proc.generate_from_img(&final_img) {
-                            let div = doc
-                                .create_element("div")
-                                .expect("creating art element")
-                                .dyn_into::<web_sys::HtmlElement>()
-                                .expect("casting created element");
-                            div.set_inner_text(&text);
-                            pre.append_child(&div).expect("appending div");
-                        }
+                        let draw = Box::new(move || {
+                            // Move the timeout keeper inside to prevent clearing all timeouts.
+                            let _keeper = inner_k.clone();
+                            let proc = gen.processor();
+                            for text in proc.generate_from_img(&final_img) {
+                                let div = doc
+                                    .create_element("div")
+                                    .expect("creating art element")
+                                    .dyn_into::<web_sys::HtmlElement>()
+                                    .expect("casting created element");
+                                div.set_inner_text(&text);
+                                pre.append_child(&div).expect("appending div");
+                            }
+                        }) as Box<_>;
+
+                        final_callback(draw).expect("final callback")
                     };
 
                     outer_k
@@ -218,16 +243,16 @@ impl DomAsciiArtInjector {
 
 /// Abstraction for keeping track of timeouts. This takes `FnOnce` thingies for
 /// registering the timeouts and clears them when it goes out of scope.
-struct TimeoutKeeper {
+pub struct TimeoutKeeper {
     stuff: Vec<(i32, Closure<FnMut()>)>,
 }
 
 impl TimeoutKeeper {
-    fn new() -> Rc<RefCell<Self>> {
+    pub fn new() -> Rc<RefCell<Self>> {
         Rc::new(RefCell::new(TimeoutKeeper { stuff: vec![] }))
     }
 
-    fn add<F>(&mut self, f: F, timeout_ms: u32)
+    pub fn add<F>(&mut self, f: F, timeout_ms: u32)
     where
         F: FnOnce() + 'static,
     {

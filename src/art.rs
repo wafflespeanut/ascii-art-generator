@@ -31,8 +31,8 @@ pub struct AsciiArtGenerator {
     pub min_level: u8,
     pub max_level: u8,
     pub gamma: f32,
-    pub(crate) width: u32,
-    pub(crate) height: u32,
+    width: u32,
+    height: u32,
     img: DynamicImage,
     ar: f32,
 }

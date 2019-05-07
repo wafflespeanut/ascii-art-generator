@@ -36,23 +36,46 @@ label[for="file-thingy"] {
   justify-content: center;
 }
 
-.success-banner {
-  margin-left: 1%;
-  display: inline-block;
+.divider {
+  display: block;
+  transition: all 0.5s;
+  background-color: black;
+  width: 1px;
+  height: 0;
   position: relative;
 }
 
-.success-banner > .arrow-content {
+.divider.hline {
+  height: 1px;
+  transition-delay: 0.5s;
+}
+
+.success-banner {
+  margin-left: 1%;
   display: flex;
-  opacity: 0;
+  flex-flow: row;
   align-items: center;
-  transition: all 1s;
 }
 
-.success-banner > .arrow-content > .arrow-text {
-  line-height: 1;
+.success-banner > .divider {
+  left: 0;
+  width: 60px;
+  padding-right: 10px;
 }
 
-.success-banner.show > .arrow-content {
+.success-banner > .divider > .hline {
+  width: 0;
+}
+
+.success-banner.show > .divider > .hline {
+  width: inherit;
+}
+
+.success-banner > .message {
+  opacity: 0;
+  transition: opacity 1s;
+}
+
+.success-banner.show > .message {
   opacity: 1;
 }

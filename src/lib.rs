@@ -14,7 +14,7 @@ mod utils;
 include!(concat!(env!("OUT_DIR"), "/demo_output.rs"));
 
 pub use self::art::AsciiArtGenerator;
-pub use self::dom::DomAsciiArtInjector;
+pub use self::dom::{DomAsciiArtInjector, TimeoutKeeper};
 
 #[wasm_bindgen]
 pub fn start() -> Result<(), JsValue> {
@@ -24,9 +24,42 @@ pub fn start() -> Result<(), JsValue> {
     injector.inject_from_data("header-box", &DEMO_DATA)?;
     display_success(&injector.document)?;
 
-    // We're using timeouts to delay things in each step instead of
-    // blocking the browser doing sync stuff.
-    injector.inject_on_file_loads("file-thingy", "art-box", "progress-box", 50)?;
+    let doc = injector.document.clone();
+    // Currently, image resizing takes an awful lot of time for huge images.
+    // That's because `image` (still) doesn't use SIMD, and we can't use rayon
+    // in Wasm.
+    injector.inject_on_file_loads(
+        "file-thingy",  // input element
+        "art-box",      // art <pre> element
+        "progress-box", // progress element
+        50,             // step timeout
+        move |draw: Box<FnOnce() + 'static>| {
+            let keeper = TimeoutKeeper::new();
+
+            let outline = doc
+                .query_selector(".outline")?
+                .expect("getting outline")
+                .dyn_into::<web_sys::Element>()?;
+            let list = outline.class_list();
+
+            // If we've already shown the outline, then we're done.
+            if list.contains("show") {
+                return Ok(draw());
+            }
+
+            list.add_1("show")?;
+            let k = keeper.clone();
+            keeper.borrow_mut().add(
+                move || {
+                    let _ = k; // move keeper to avoid cancelling timeouts.
+                    draw();
+                },
+                1000,
+            );
+
+            Ok(())
+        },
+    )?;
 
     Ok(())
 }
