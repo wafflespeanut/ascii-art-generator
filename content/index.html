@@ -29,6 +29,27 @@
   <span class="outline">
     <span class="divider"></span>
     <span class="divider hline"></span>
+    <div id="art-params">
+      <div id="min-level" class="range-slider">
+        <div>Min level</div>
+        <input class="range" type="range" min="0" max="255" step="1">
+        <span class="value"></span>
+      </div>
+      <div id="max-level" class="range-slider">
+        <div>Max level</div>
+        <input class="range" type="range" min="0" max="255" step="1">
+        <span class="value"></span>
+      </div>
+      <div id="gamma" class="range-slider">
+        <div>Gamma</div>
+        <input class="range" type="range" min="0" max="1.0" step="0.01">
+        <span class="value"></span>
+      </div>
+      <div>
+        <button id="change">Change</button>
+        <button id="reset">Reset</button>
+      </div>
+    </div>
   </span>
   <pre id="art-box"></pre>
 </body>

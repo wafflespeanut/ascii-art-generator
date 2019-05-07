@@ -9,32 +9,39 @@ use std::cell::{Cell, RefCell};
 use std::cmp;
 use std::rc::Rc;
 
-const THUMB_HEIGHT: u32 = 100;
+const THUMB_HEIGHT: u32 = 50;
 
 /// A thing for reading files and injecting the art.
 pub struct DomAsciiArtInjector {
     pub window: Rc<web_sys::Window>,
     pub document: Rc<web_sys::Document>,
+    pub keeper: Rc<RefCell<TimingEventKeeper>>,
 }
 
 impl DomAsciiArtInjector {
     /// Initialize this injector with the IDs of `<pre>` element (for injecting art)
     /// and `<input>` element for subscribing to file loads.
-    pub fn init() -> Result<Self, JsValue> {
+    pub fn init() -> Self {
         let window = web_sys::window().map(Rc::new).expect("getting window");
         let document = window.document().map(Rc::new).expect("getting document");
 
-        Ok(DomAsciiArtInjector { window, document })
+        DomAsciiArtInjector {
+            window,
+            document,
+            keeper: TimingEventKeeper::new(),
+        }
     }
 
     /// Inject into the `<pre>` element matching the given ID using the given image data.
     pub fn inject_from_data(&self, pre_elem_id: &str, buffer: &[u8]) -> Result<(), JsValue> {
-        let pre = self
-            .get_element_by_id::<web_sys::HtmlPreElement>(pre_elem_id)
-            .map(Rc::new)?;
+        let pre = get_elem_by_id!(self.document > pre_elem_id => web_sys::HtmlPreElement)?;
+        let gen = AsciiArtGenerator::from_bytes(buffer)
+            .map(Rc::new)
+            .expect("failed to load demo.");
         Self::inject_from_data_using_document(
-            buffer,
+            gen,
             &self.document,
+            &self.keeper,
             &pre,
             0,
             |_| Ok(()),
@@ -58,35 +65,50 @@ impl DomAsciiArtInjector {
         final_callback: F,
     ) -> Result<(), JsValue>
     where
-        F: FnMut(Box<FnOnce() + 'static>) -> Result<(), JsValue> + Clone + 'static,
+        F: Fn(Box<FnOnce() + 'static>) -> Result<(), JsValue> + Clone + 'static,
     {
         // Setup the stage.
         let reader = web_sys::FileReader::new().map(Rc::new)?;
-        let pre = self
-            .get_element_by_id::<web_sys::HtmlPreElement>(pre_elem_id)
-            .map(Rc::new)?;
-        let prog = self
-            .get_element_by_id::<web_sys::Element>(progress_elem_id)
-            .map(Rc::new)?;
-        let input = self
-            .get_element_by_id::<web_sys::HtmlInputElement>(input_elem_id)
-            .map(Rc::new)?;
+        let pre = get_elem_by_id!(self.document > pre_elem_id => web_sys::HtmlPreElement)?;
+        let prog = get_elem_by_id!(self.document > progress_elem_id => web_sys::Element)?;
+        let input = get_elem_by_id!(self.document > input_elem_id => web_sys::HtmlInputElement)?;
         input.set_value(""); // reset input element
 
+        let min_inp =
+            query_selector!(self.document > "#min-level > .range" => web_sys::HtmlInputElement)?;
+        let max_inp =
+            query_selector!(self.document > "#max-level > .range" => web_sys::HtmlInputElement)?;
+        let gamma_inp =
+            query_selector!(self.document > "#gamma > .range" => web_sys::HtmlInputElement)?;
+
         {
-            let (r, doc) = (reader.clone(), self.document.clone());
+            let (r, k, doc) = (reader.clone(), self.keeper.clone(), self.document.clone());
             let closure = Closure::wrap(Box::new(move |_: web_sys::Event| {
-                // Input file has changed. Reset progress and get buffer.
+                // Something has changed. Reset progress and get new values and buffer.
                 prog.set_inner_html("");
+                let (min, max, gamma) = (
+                    min_inp.value_as_number() as u8,
+                    max_inp.value_as_number() as u8,
+                    gamma_inp.value_as_number() as f32,
+                );
+
                 let value = r.result().expect("reading complete but no result?");
                 let buffer = Uint8Array::new(&value);
                 let mut bytes = vec![0; buffer.length() as usize];
                 buffer.copy_to(&mut bytes);
+                let gen = AsciiArtGenerator::from_bytes(&bytes)
+                    .map(Rc::new)
+                    .expect("failed to load image.");
+                gen.min_level.set(min);
+                gen.max_level.set(max);
+                gen.gamma.set(gamma);
 
+                console_log!("Loaded {} bytes", bytes.len());
                 let (doc, prog) = (doc.clone(), prog.clone());
                 Self::inject_from_data_using_document(
-                    &bytes,
+                    gen,
                     &doc.clone(),
+                    &k,
                     &pre,
                     timeout_ms,
                     move |img: &DynamicImage| -> Result<(), JsValue> {
@@ -111,24 +133,13 @@ impl DomAsciiArtInjector {
                     },
                     final_callback.clone(),
                 );
-            }) as Box<FnMut(_)>);
+            }) as Box<Fn(_)>);
 
             reader.set_onload(Some(closure.as_ref().unchecked_ref()));
             closure.forget();
         }
 
         self.add_file_listener(input, reader)
-    }
-
-    /// Abstraction for `document.getElementById`
-    pub(crate) fn get_element_by_id<T>(&self, id: &str) -> Result<T, web_sys::Element>
-    where
-        T: JsCast,
-    {
-        self.document
-            .get_element_by_id(id)
-            .expect("missing element?")
-            .dyn_into::<T>()
     }
 
     /// Adds event listener for reading files.
@@ -139,18 +150,19 @@ impl DomAsciiArtInjector {
     ) -> Result<(), JsValue> {
         let inp = input.clone();
         let closure = Closure::wrap(Box::new(move |_: web_sys::Event| {
+            console_log!("change event");
             let file = match inp
                 .files()
                 .and_then(|l| l.get(l.length().saturating_sub(1)))
             {
                 Some(f) => f.slice().expect("failed to get blob"),
-                None => panic!("change event triggered for no files?"),
+                None => return,
             };
 
             reader
                 .read_as_array_buffer(&file)
                 .expect("failed to read file");
-        }) as Box<FnMut(_)>);
+        }) as Box<Fn(_)>);
 
         input.set_onchange(Some(closure.as_ref().unchecked_ref()));
         closure.forget();
@@ -162,25 +174,19 @@ impl DomAsciiArtInjector {
     /// called after each step. Also takes a final callback for invoking the final draw.
     // NOTE: Yes, this is unnecessarily complicated, I know!
     fn inject_from_data_using_document<F, U>(
-        buffer: &[u8],
+        gen: Rc<AsciiArtGenerator>,
         doc: &Rc<web_sys::Document>,
+        keeper: &Rc<RefCell<TimingEventKeeper>>,
         pre: &Rc<web_sys::HtmlPreElement>,
         step_timeout_ms: u32,
-        mut callback: F,
+        callback: F,
         final_callback: U,
     ) where
-        F: FnMut(&DynamicImage) -> Result<(), JsValue> + 'static,
+        F: Fn(&DynamicImage) -> Result<(), JsValue> + 'static,
         U: FnOnce(Box<FnOnce() + 'static>) -> Result<(), JsValue> + 'static,
     {
-        console_log!("Image size: {} bytes", buffer.len());
-
         pre.set_inner_html(""); // reset <pre> element
-        let gen = AsciiArtGenerator::from_bytes(&buffer)
-            .map(Rc::new)
-            .expect("failed to load image.");
-
         let delay = Rc::new(Cell::new(step_timeout_ms));
-        let keeper = TimeoutKeeper::new();
 
         // Callback hell begins!
         let (pre, doc, inner_d, inner_k) =
@@ -242,30 +248,46 @@ impl DomAsciiArtInjector {
 }
 
 /// Abstraction for keeping track of timeouts. This takes `FnOnce` thingies for
-/// registering the timeouts and clears them when it goes out of scope.
-pub struct TimeoutKeeper {
-    stuff: Vec<(i32, Closure<FnMut()>)>,
+/// registering the timeouts (`FnMut` thingies for intervals) and clears them when
+/// it goes out of scope (also dropping the closures).
+pub struct TimingEventKeeper {
+    stuff: Vec<(i32, Closure<FnMut()>, bool)>,
 }
 
-impl TimeoutKeeper {
+impl TimingEventKeeper {
     pub fn new() -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(TimeoutKeeper { stuff: vec![] }))
+        Rc::new(RefCell::new(TimingEventKeeper { stuff: vec![] }))
     }
 
+    /// Adds an `FnOnce` closure with a timeout.
     pub fn add<F>(&mut self, f: F, timeout_ms: u32)
     where
         F: FnOnce() + 'static,
     {
         let f = Closure::once(Box::new(f) as Box<FnOnce()>);
         let id = crate::set_timeout_simple(&f, timeout_ms as i32);
-        self.stuff.push((id, f));
+        self.stuff.push((id, f, false));
+    }
+
+    /// Adds an `FnMut` closure with an interval for repetitive callback.
+    pub fn add_repetitive<F>(&mut self, f: F, interval_ms: u32)
+    where
+        F: FnMut() + 'static,
+    {
+        let f = Closure::wrap(Box::new(f) as Box<FnMut()>);
+        let id = crate::set_interval_simple(&f, interval_ms as i32);
+        self.stuff.push((id, f, true))
     }
 }
 
-impl Drop for TimeoutKeeper {
+impl Drop for TimingEventKeeper {
     fn drop(&mut self) {
-        self.stuff.drain(..).for_each(|(id, _)| {
-            crate::clear_timeout(id);
+        self.stuff.drain(..).for_each(|(id, _, repeating)| {
+            if repeating {
+                crate::clear_interval(id);
+            } else {
+                crate::clear_timeout(id);
+            }
         });
     }
 }

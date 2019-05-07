@@ -1,7 +1,12 @@
 
 #rusty-box {
   padding-top: 2%;
-  flex-flow: row;
+  grid-template-rows: 1fr;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+label[for="file-thingy"] {
+  grid-column-start: 2;
 }
 
 #header-box {
@@ -23,8 +28,31 @@
   width: auto;
 }
 
+.outline > #art-params {
+  grid-template-columns: repeat(5, 1fr);
+  margin-top: 10px;
+}
+
+#art-params > div {
+  font-size: initial;
+  text-align: center;
+}
+
+#art-params > div:nth-child(1) {
+  grid-column-start: 2;
+}
+
+#art-params > div:last-child {
+  display: flex;
+  margin: 10px;
+}
+
+.divider.hline {
+  margin: 0;
+}
+
 .success-banner {
-  margin-top: 0;
+  justify-content: left;
   font-size: initial;
 }
 

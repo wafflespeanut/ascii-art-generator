@@ -1,12 +1,14 @@
+*, *:before, *:after {
+  box-sizing: border-box;
+}
+
 * {
   margin: 0;
   padding: 0;
 }
 
 #rusty-box {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: grid;
 }
 
 #file-thingy {
@@ -36,6 +38,58 @@ label[for="file-thingy"] {
   justify-content: center;
 }
 
+.outline > #art-params {
+  display: grid;
+  opacity: 0;
+  transition: opacity 1s;
+}
+
+.outline.show > #art-params {
+  opacity: 1;
+}
+
+#art-params > div {
+  text-align: center;
+}
+
+/* Slider inspired from https://codepen.io/seanstopnik/pen/CeLqA */
+
+.range-slider > .range {
+  -webkit-appearance: none;
+  width: calc(100% - (100px));
+  height: 10px;
+  border-radius: 5px;
+  background: #d7dcdf;
+  outline: none;
+}
+
+.range-slider > .value {
+  display: inline-block;
+  position: relative;
+  width: 60px;
+  color: #fff;
+  line-height: 20px;
+  text-align: center;
+  border-radius: 3px;
+  background: #2c3e50;
+  padding: 5px 10px;
+  margin-left: 8px;
+}
+
+.range-slider > .value:after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: -7px;
+  width: 0;
+  height: 0;
+  border-top: 7px solid transparent;
+  border-right: 7px solid #2c3e50;
+  border-bottom: 7px solid transparent;
+}
+
+/* Transition stuff */
+
 .divider {
   display: block;
   transition: all 0.5s;
@@ -51,7 +105,6 @@ label[for="file-thingy"] {
 }
 
 .success-banner {
-  margin-left: 1%;
   display: flex;
   flex-flow: row;
   align-items: center;
@@ -60,7 +113,6 @@ label[for="file-thingy"] {
 .success-banner > .divider {
   left: 0;
   width: 60px;
-  padding-right: 10px;
 }
 
 .success-banner > .divider > .hline {
@@ -72,6 +124,7 @@ label[for="file-thingy"] {
 }
 
 .success-banner > .message {
+  margin-left: 10px;
   opacity: 0;
   transition: opacity 1s;
 }

@@ -38,6 +38,7 @@ features = [
   "DomTokenList",
   "Element",
   "Event",
+  "EventTarget",
   "File",
   "FileList",
   "FileReader",
@@ -46,6 +47,7 @@ features = [
   "HtmlInputElement",
   "HtmlPreElement",
   "Node",
+  "NodeList",
   "Window",
 ]
 

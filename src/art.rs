@@ -1,15 +1,16 @@
 use crate::utils;
 use image::{DynamicImage, FilterType, GenericImageView, ImageError, RgbImage};
 
+use std::cell::Cell;
 use std::cmp;
 use std::ops::Deref;
 
 const BLEND_RATIO: f32 = 0.5;
-
-const DEFAULT_MIN_LEVEL: u8 = 78;
-const DEFAULT_MAX_LEVEL: u8 = 125;
-const DEFAULT_GAMMA: f32 = 0.78;
 const MAX_WIDTH: u32 = 500;
+
+pub const DEFAULT_MIN_LEVEL: u8 = 78;
+pub const DEFAULT_MAX_LEVEL: u8 = 125;
+pub const DEFAULT_GAMMA: f32 = 0.78;
 
 /* Constants below are obtained using Python. See https://github.com/wafflespeanut/ascii-art-generator/blob/0b519b00b43eadb8500db30c304b2b87ad7eb159/src/gen.py#L27-L39 */
 
@@ -28,9 +29,9 @@ const CHARS: &[char] = &[
 
 /// This project - the whole deal.
 pub struct AsciiArtGenerator {
-    pub min_level: u8,
-    pub max_level: u8,
-    pub gamma: f32,
+    pub min_level: Cell<u8>,
+    pub max_level: Cell<u8>,
+    pub gamma: Cell<f32>,
     width: u32,
     height: u32,
     img: DynamicImage,
@@ -45,9 +46,9 @@ impl AsciiArtGenerator {
         let clamped_width = cmp::min(w, MAX_WIDTH);
 
         let mut gen = AsciiArtGenerator {
-            min_level: DEFAULT_MIN_LEVEL,
-            max_level: DEFAULT_MAX_LEVEL,
-            gamma: DEFAULT_GAMMA,
+            min_level: Cell::new(DEFAULT_MIN_LEVEL),
+            max_level: Cell::new(DEFAULT_MAX_LEVEL),
+            gamma: Cell::new(DEFAULT_GAMMA),
 
             img,
             width: w,
@@ -161,9 +162,9 @@ impl<'a> Processor<'a> {
 
     fn blend_and_adjust_levels(&self, actual_buf: &mut RgbImage, fg_buf: &RgbImage) {
         let (min, max, inv_gamma) = (
-            self.min_level as f32 / 255.0,
-            self.max_level as f32 / 255.0,
-            1.0 / self.gamma,
+            self.min_level.get() as f32 / 255.0,
+            self.max_level.get() as f32 / 255.0,
+            1.0 / self.gamma.get(),
         );
 
         actual_buf
