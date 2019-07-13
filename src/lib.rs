@@ -44,12 +44,32 @@ use self::art::{DEFAULT_GAMMA, DEFAULT_MAX_LEVEL, DEFAULT_MIN_LEVEL};
 #[wasm_bindgen]
 pub fn start() -> Result<(), JsValue> {
     utils::set_panic_hook();
-
     let injector = DomAsciiArtInjector::init();
+    let search_str = injector.window.location().search()?;
+    let params = web_sys::UrlSearchParams::new_with_str(&search_str)?;
+    let content = query_selector!(injector.document > ".outline" => web_sys::Element)?;
+
+    if let Some(url) = params.get("url") {
+        content.class_list().add_1("remove")?;
+
+        return injector.inject_from_url(
+            &url,
+            "art-box",
+            params.get("min").and_then(|v| v.parse().ok()),
+            params.get("max").and_then(|v| v.parse().ok()),
+            params.get("gamma").and_then(|v| v.parse().ok()),
+            50,
+            |draw: Box<FnOnce() + 'static>| {
+                draw();
+
+                Ok(())
+            },
+        );
+    }
+
     injector.inject_from_data("header-box", &DEMO_DATA)?;
     display_success(&injector.document)?;
 
-    let content = query_selector!(injector.document > ".outline" => web_sys::Element)?;
     let (k, o) = (injector.keeper.clone(), content.clone());
     // Currently, image resizing takes an awful lot of time for huge images.
     // `image` doesn't use SIMD, and we can't use rayon in wasm.

@@ -38,6 +38,10 @@ label[for="file-thingy"] {
   justify-content: center;
 }
 
+.outline.remove {
+  display: none;
+}
+
 .outline > #art-params {
   display: grid;
   opacity: 0;

@@ -46,9 +46,14 @@ features = [
   "HtmlImageElement",
   "HtmlInputElement",
   "HtmlPreElement",
+  "Location",
   "Node",
   "NodeList",
+  "UrlSearchParams",
   "Window",
+  "XmlHttpRequest",
+  "XmlHttpRequestEventTarget",
+  "XmlHttpRequestResponseType",
 ]
 
 [profile.release]

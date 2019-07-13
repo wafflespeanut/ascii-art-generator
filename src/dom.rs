@@ -54,6 +54,78 @@ impl DomAsciiArtInjector {
         Ok(())
     }
 
+    /// Downloads image from the given URL and updates the `<pre>` element.
+    pub fn inject_from_url<F>(
+        &self,
+        url: &str,
+        pre_elem_id: &str,
+        min: Option<u8>,
+        max: Option<u8>,
+        gamma: Option<f32>,
+        timeout_ms: u32,
+        final_callback: F,
+    ) -> Result<(), JsValue>
+    where
+        F: Fn(Box<FnOnce() + 'static>) -> Result<(), JsValue> + Clone + 'static,
+    {
+        let pre = get_elem_by_id!(self.document > pre_elem_id => web_sys::HtmlPreElement)?;
+
+        let xhr = web_sys::XmlHttpRequest::new().map(Rc::new)?;
+        xhr.open("GET", url)?;
+        xhr.set_response_type(web_sys::XmlHttpRequestResponseType::Arraybuffer);
+
+        let (x, d, k) = (xhr.clone(), self.document.clone(), self.keeper.clone());
+        let download = Closure::wrap(Box::new(move |_: web_sys::Event| {
+            if x.ready_state() != web_sys::XmlHttpRequest::DONE {
+                console_log!("Ajax not ready yet.");
+                return;
+            }
+
+            let status = x.status().expect("getting status");
+            if status != 200 {
+                console_log!("Error fetching image. Got {} status code.", status);
+                return;
+            }
+
+            let value = x.response().expect("loading complete but no result?");
+            let buffer = Uint8Array::new(&value);
+            let mut bytes = vec![0; buffer.length() as usize];
+            buffer.copy_to(&mut bytes);
+            let gen = AsciiArtGenerator::from_bytes(&bytes)
+                .map(Rc::new)
+                .expect("failed to load image.");
+
+            if let Some(m) = min {
+                gen.min_level.set(m);
+            }
+
+            if let Some(m) = max {
+                gen.max_level.set(m);
+            }
+
+            if let Some(m) = gamma {
+                gen.gamma.set(m);
+            }
+
+            console_log!("Loaded {} bytes", bytes.len());
+            Self::inject_from_data_using_document(
+                gen,
+                &d,
+                &k,
+                &pre,
+                timeout_ms,
+                |_| -> Result<(), JsValue> { Ok(()) },
+                final_callback.clone(),
+            );
+        }) as Box<Fn(_)>);
+
+        xhr.set_onload(Some(download.as_ref().unchecked_ref()));
+        download.forget();
+        xhr.send()?;
+
+        Ok(())
+    }
+
     /// Adds an event listener to watch and update the `<pre>` element
     /// whenever a file is loaded.
     pub fn inject_on_file_loads<F>(
