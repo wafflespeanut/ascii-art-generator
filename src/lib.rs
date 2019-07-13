@@ -58,8 +58,9 @@ pub fn start() -> Result<(), JsValue> {
             params.get("min").and_then(|v| v.parse().ok()),
             params.get("max").and_then(|v| v.parse().ok()),
             params.get("gamma").and_then(|v| v.parse().ok()),
+            params.get("width").and_then(|v| v.parse().ok()),
             50,
-            |draw: Box<FnOnce() + 'static>| {
+            |draw: Box<dyn FnOnce() + 'static>| {
                 draw();
 
                 Ok(())
@@ -78,7 +79,7 @@ pub fn start() -> Result<(), JsValue> {
         "art-box",      // art <pre> element
         "progress-box", // progress element
         50,             // step timeout
-        move |draw: Box<FnOnce() + 'static>| {
+        move |draw: Box<dyn FnOnce() + 'static>| {
             let list = o.class_list();
             // If we've already shown the contents, then we're done.
             if list.contains("show") {
@@ -127,7 +128,8 @@ fn set_listeners(
                 n.set_text_content(Some(&value));
             };
 
-            let wrapped = Closure::wrap(Box::new(move |_: web_sys::Event| f()) as Box<FnMut(_)>);
+            let wrapped =
+                Closure::wrap(Box::new(move |_: web_sys::Event| f()) as Box<dyn FnMut(_)>);
             input.set_oninput(Some(wrapped.as_ref().unchecked_ref()));
             wrapped.forget();
             Ok(())
@@ -199,11 +201,11 @@ fn set_listeners(
     let f = Closure::wrap(Box::new(move |_: web_sys::Event| {
         reset();
         e(); // also emit during reset.
-    }) as Box<FnMut(_)>);
+    }) as Box<dyn FnMut(_)>);
     reset_button.add_event_listener_with_callback("click", f.as_ref().unchecked_ref())?;
     f.forget();
 
-    let f = Closure::wrap(Box::new(move |_: web_sys::Event| emit()) as Box<FnMut(_)>);
+    let f = Closure::wrap(Box::new(move |_: web_sys::Event| emit()) as Box<dyn FnMut(_)>);
     change_button.add_event_listener_with_callback("click", f.as_ref().unchecked_ref())?;
     f.forget();
 
@@ -221,13 +223,13 @@ fn display_success(doc: &web_sys::Document) -> Result<(), JsValue> {
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_name = setTimeout)]
-    fn set_timeout_simple(closure: &Closure<FnMut()>, timeout_ms: i32) -> i32;
+    fn set_timeout_simple(closure: &Closure<dyn FnMut()>, timeout_ms: i32) -> i32;
 
     #[wasm_bindgen(js_name = clearTimeout)]
     fn clear_timeout(id: i32);
 
     #[wasm_bindgen(js_name = setInterval)]
-    fn set_interval_simple(closure: &Closure<FnMut()>, interval_ms: i32) -> i32;
+    fn set_interval_simple(closure: &Closure<dyn FnMut()>, interval_ms: i32) -> i32;
 
     #[wasm_bindgen(js_name = clearInterval)]
     fn clear_interval(id: i32);

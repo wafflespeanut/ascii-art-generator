@@ -62,11 +62,12 @@ impl DomAsciiArtInjector {
         min: Option<u8>,
         max: Option<u8>,
         gamma: Option<f32>,
+        width: Option<u32>,
         timeout_ms: u32,
         final_callback: F,
     ) -> Result<(), JsValue>
     where
-        F: Fn(Box<FnOnce() + 'static>) -> Result<(), JsValue> + Clone + 'static,
+        F: Fn(Box<dyn FnOnce() + 'static>) -> Result<(), JsValue> + Clone + 'static,
     {
         let pre = get_elem_by_id!(self.document > pre_elem_id => web_sys::HtmlPreElement)?;
 
@@ -92,6 +93,13 @@ impl DomAsciiArtInjector {
             let mut bytes = vec![0; buffer.length() as usize];
             buffer.copy_to(&mut bytes);
             let gen = AsciiArtGenerator::from_bytes(&bytes)
+                .map(|mut gen| {
+                    if let Some(w) = width {
+                        gen.set_width(w);
+                    }
+
+                    gen
+                })
                 .map(Rc::new)
                 .expect("failed to load image.");
 
@@ -117,7 +125,7 @@ impl DomAsciiArtInjector {
                 |_| -> Result<(), JsValue> { Ok(()) },
                 final_callback.clone(),
             );
-        }) as Box<Fn(_)>);
+        }) as Box<dyn Fn(_)>);
 
         xhr.set_onload(Some(download.as_ref().unchecked_ref()));
         download.forget();
@@ -137,7 +145,7 @@ impl DomAsciiArtInjector {
         final_callback: F,
     ) -> Result<(), JsValue>
     where
-        F: Fn(Box<FnOnce() + 'static>) -> Result<(), JsValue> + Clone + 'static,
+        F: Fn(Box<dyn FnOnce() + 'static>) -> Result<(), JsValue> + Clone + 'static,
     {
         // Setup the stage.
         let reader = web_sys::FileReader::new().map(Rc::new)?;
@@ -205,7 +213,7 @@ impl DomAsciiArtInjector {
                     },
                     final_callback.clone(),
                 );
-            }) as Box<Fn(_)>);
+            }) as Box<dyn Fn(_)>);
 
             reader.set_onload(Some(closure.as_ref().unchecked_ref()));
             closure.forget();
@@ -234,7 +242,7 @@ impl DomAsciiArtInjector {
             reader
                 .read_as_array_buffer(&file)
                 .expect("failed to read file");
-        }) as Box<Fn(_)>);
+        }) as Box<dyn Fn(_)>);
 
         input.set_onchange(Some(closure.as_ref().unchecked_ref()));
         closure.forget();
@@ -255,7 +263,7 @@ impl DomAsciiArtInjector {
         final_callback: U,
     ) where
         F: Fn(&DynamicImage) -> Result<(), JsValue> + 'static,
-        U: FnOnce(Box<FnOnce() + 'static>) -> Result<(), JsValue> + 'static,
+        U: FnOnce(Box<dyn FnOnce() + 'static>) -> Result<(), JsValue> + 'static,
     {
         pre.set_inner_html(""); // reset <pre> element
         let delay = Rc::new(Cell::new(step_timeout_ms));
@@ -323,7 +331,7 @@ impl DomAsciiArtInjector {
 /// registering the timeouts (`FnMut` thingies for intervals) and clears them when
 /// it goes out of scope (also dropping the closures).
 pub struct TimingEventKeeper {
-    stuff: Vec<(i32, Closure<FnMut()>, bool)>,
+    stuff: Vec<(i32, Closure<dyn FnMut()>, bool)>,
 }
 
 impl TimingEventKeeper {
@@ -336,7 +344,7 @@ impl TimingEventKeeper {
     where
         F: FnOnce() + 'static,
     {
-        let f = Closure::once(Box::new(f) as Box<FnOnce()>);
+        let f = Closure::once(Box::new(f) as Box<dyn FnOnce()>);
         let id = crate::set_timeout_simple(&f, timeout_ms as i32);
         self.stuff.push((id, f, false));
     }
@@ -346,7 +354,7 @@ impl TimingEventKeeper {
     where
         F: FnMut() + 'static,
     {
-        let f = Closure::wrap(Box::new(f) as Box<FnMut()>);
+        let f = Closure::wrap(Box::new(f) as Box<dyn FnMut()>);
         let id = crate::set_interval_simple(&f, interval_ms as i32);
         self.stuff.push((id, f, true))
     }
