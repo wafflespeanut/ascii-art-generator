@@ -8,6 +8,7 @@ before_install:
 
 script:
   - docker run --rm -it -v "$(pwd)":/home/rust/src wafflespeanut/rust-wasm-builder:nightly wasm-pack build
+  - docker run --rm -it -v "$(pwd)":/home/rust/src wafflespeanut/rust-wasm-builder:nightly sh -c "mv pkg/charcoal_bg.wasm target/charcoal_old.wasm && wasm-opt -O3 -o pkg/charcoal_bg.wasm target/charcoal_old.wasm"
   - docker run --rm -it -v "$(pwd)":/home/node/app node sh -c "cd /home/node/app/pkg && npm link && cd .. && npm link rusty-sketch && npm install && npm run build"
   - docker build -t wafflespeanut/rusty-sketch .
 
