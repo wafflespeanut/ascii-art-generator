@@ -13,7 +13,7 @@ crate-type = ["cdylib", "rlib"]
 default = ["console_error_panic_hook"]
 
 [dependencies]
-base64 = "0.10.1"
+base64 = "0.11.0"
 js-sys = "0.3.20"
 wasm-bindgen = "0.2.43"
 # The `console_error_panic_hook` crate provides better debugging of panics by
