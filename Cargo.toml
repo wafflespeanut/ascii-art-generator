@@ -22,6 +22,11 @@ wasm-bindgen = "0.2"
 # code size when deploying.
 console_error_panic_hook = { version = "0.1", optional = true }
 
+[dependencies.getrandom]
+version = "0.2"
+default-features = false
+features = ["js"]
+
 [dependencies.image]
 version = "0.25"
 default-features = false

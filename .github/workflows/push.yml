@@ -9,9 +9,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build app
         run: |
-          docker run -t -v "$(pwd)":/home/rust/src wafflespeanut/rust-wasm-builder:nightly wasm-pack build
-          docker run -t -v "$(pwd)":/home/rust/src wafflespeanut/rust-wasm-builder:nightly sh -c "mv pkg/charcoal_bg.wasm target/charcoal_old.wasm && wasm-opt -O3 -o pkg/charcoal_bg.wasm target/charcoal_old.wasm"
-          docker run -t -v "$(pwd)":/home/node/app node sh -c "cd /home/node/app/pkg && npm link && cd .. && npm link rusty-sketch && npm install && npm run build"
+          docker run -t -v "$(pwd)":/home/rust/src:rw wafflespeanut/rust-wasm-builder:nightly wasm-pack build
+          docker run -t -v "$(pwd)":/home/rust/src:rw wafflespeanut/rust-wasm-builder:nightly sh -c "mv pkg/charcoal_bg.wasm target/charcoal_old.wasm && wasm-opt -O3 -o pkg/charcoal_bg.wasm target/charcoal_old.wasm"
+          docker run -t -v "$(pwd)":/home/node/app:rw node sh -c "cd /home/node/app/pkg && npm link && cd .. && npm link rusty-sketch && npm install && npm run build"
           docker build -t wafflespeanut/rusty-sketch .
       - name: Push to registry
         run: |

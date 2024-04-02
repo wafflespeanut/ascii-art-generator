@@ -12,5 +12,9 @@ module.exports = {
     path: resolve(".build/assets/scripts"),
     publicPath: "assets/scripts/"
   },
+  experiments: {
+    asyncWebAssembly: true,
+    syncWebAssembly: true,
+  },
   mode: "production"
 }
