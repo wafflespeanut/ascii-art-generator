@@ -1,7 +1,5 @@
 ## ascii-art-generator
 
-[![Build Status](https://travis-ci.org/wafflespeanut/ascii-art-generator.svg?branch=master)](https://travis-ci.org/wafflespeanut/ascii-art-generator)
-
 > **NOTE:** This is a port of my [Python project](https://github.com/wafflespeanut/ascii-art-generator/tree/0b519b00b43eadb8500db30c304b2b87ad7eb159) to play with Rust and WASM.
 
 Generates ASCII arts from JPEG/PNG images. [Live demo](https://waffles.space/ascii-gen/).
