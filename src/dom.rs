@@ -1,12 +1,13 @@
 use crate::art::AsciiArtGenerator;
 
-use image::{DynamicImage, GenericImageView};
+use base64::prelude::*;
+use image::DynamicImage;
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
 
 use std::cell::{Cell, RefCell};
 use std::cmp;
+use std::io::{BufWriter, Cursor};
 use std::rc::Rc;
 
 const THUMB_HEIGHT: u32 = 50;
@@ -196,13 +197,19 @@ impl DomAsciiArtInjector {
                         let new_h = cmp::min(img.height(), THUMB_HEIGHT);
                         let new_w =
                             (new_h as f32 * img.width() as f32 / img.height() as f32) as u32;
-                        let img = img.resize_exact(new_w, new_h, image::FilterType::Lanczos3);
-                        let mut bytes = vec![];
-                        img.write_to(&mut bytes, image::ImageFormat::JPEG)
+                        let img = img.resize_exact(new_w, new_h, image::imageops::Lanczos3);
+                        let bytes = Cursor::new(vec![]);
+                        let mut writer = BufWriter::new(bytes);
+                        img.write_to(&mut writer, image::ImageFormat::Jpeg)
                             .expect("invalid image?");
 
                         // Encode the image to base64 and append it to the document for preview.
-                        let b64 = base64::encode(&bytes);
+                        let b64 = BASE64_STANDARD.encode(
+                            writer
+                                .into_inner()
+                                .expect("getting bytes from writer")
+                                .into_inner(),
+                        );
                         let img = doc
                             .create_element("img")?
                             .dyn_into::<web_sys::HtmlImageElement>()?;

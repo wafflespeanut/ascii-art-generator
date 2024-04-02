@@ -1,7 +1,6 @@
-#![feature(cell_update, const_fn)]
+#![feature(cell_update, const_fn_floating_point_arithmetic)]
 
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
 
 use std::cell::Cell;
 use std::rc::Rc;

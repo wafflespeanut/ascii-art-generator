@@ -1,5 +1,5 @@
 use crate::utils;
-use image::{DynamicImage, FilterType, GenericImageView, ImageError, RgbImage};
+use image::{DynamicImage, GenericImageView, ImageError, RgbImage};
 
 use std::cell::Cell;
 use std::cmp;
@@ -124,7 +124,8 @@ impl<'a> Processor<'a> {
     #[inline]
     pub fn resize(&self) -> DynamicImage {
         let h = (self.height as f32 * DEFAULT_CHAR_WIDTH / DEFAULT_CHAR_HEIGHT) as u32;
-        self.img.resize_exact(self.width, h, FilterType::Lanczos3)
+        self.img
+            .resize_exact(self.width, h, image::imageops::Lanczos3)
     }
 
     /// Applies Guassian blur and inverts the image. This will be blended
@@ -138,12 +139,12 @@ impl<'a> Processor<'a> {
 
     /// Blend the given images and adjust levels.
     pub fn blend_and_adjust(&self, actual: &DynamicImage, fg: &DynamicImage) -> DynamicImage {
-        let mut actual_buf = actual.to_rgb();
-        let fg_buf = fg.to_rgb();
+        let mut actual_buf = actual.to_rgb8();
+        let fg_buf = fg.to_rgb8();
         self.blend_and_adjust_levels(&mut actual_buf, &fg_buf);
 
         let detailed = DynamicImage::ImageRgb8(actual_buf);
-        DynamicImage::ImageLuma8(detailed.to_luma())
+        DynamicImage::ImageLuma8(detailed.to_luma8())
     }
 
     /// Converts the image to Luma, maps the characters and returns a `String` iterator.
@@ -153,7 +154,7 @@ impl<'a> Processor<'a> {
         (0..height).map(move |y| {
             (0..width)
                 .map(|x| {
-                    let p = img.get_pixel(x, y).data[0] as f32 / 255.0;
+                    let p = img.get_pixel(x, y).0[0] as f32 / 255.0;
                     CHARS[(p * multiplier + 0.5) as usize]
                 })
                 .collect()
@@ -185,7 +186,7 @@ impl<'a> Processor<'a> {
                 }
 
                 let (r, g, b) = utils::convert_hsv_to_rgb((h, s, v));
-                p1.data = [
+                p1.0 = [
                     (r * 255.0).round() as u8,
                     (g * 255.0).round() as u8,
                     (b * 255.0).round() as u8,
